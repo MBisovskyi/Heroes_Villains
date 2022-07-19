@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .serializers import SuperSerializer
-from .models import Super
+from .models import Power, Super
 from rest_framework import status
 
 # Create your views here.
@@ -12,27 +12,21 @@ from rest_framework import status
 def supers_list(request):
     if request.method == 'GET':
         heroes = Super.objects.filter(super_type_id = 1)
-        heroes_list = []
-        for hero in heroes:
-            heroes_list.append(hero)
         villains = Super.objects.filter(super_type_id = 2)
-        villains_list = []
-        for villain in villains:
-                    villains_list.append(villain)
         supers_param = request.query_params.get('type')
         if supers_param:
             if supers_param == 'hero':
-                serializer = SuperSerializer(heroes_list, many = True)
+                serializer = SuperSerializer(heroes, many = True)
                 return Response(serializer.data)
             elif supers_param == 'villain':
-                serializer = SuperSerializer(villains_list, many = True)
+                serializer = SuperSerializer(villains, many = True)
                 return Response(serializer.data)
             else:
                 answer = 'No Super Type found'
                 return Response(answer, status = status.HTTP_204_NO_CONTENT)
         else:
-            heroes = heroes_dict(heroes_list)
-            villains = villains_dict(villains_list)
+            heroes = heroes_dict(heroes)
+            villains = villains_dict(villains)
             custom_response = {"Heroes": heroes, "Villains": villains}
             return Response(custom_response)            
     elif request.method == 'POST':
@@ -57,27 +51,36 @@ def super_by_id(request, pk):
         return Response(status = status.HTTP_204_NO_CONTENT)
 
 def heroes_dict(heroes):
-    heroes_dict = []
+    heroes_list = []
     for hero in heroes:
         hero = {
         "name": hero.name,
         "alter_ego": hero.alter_ego,
-        "primary_ability": hero.primary_ability,
-        "secondary_ability": hero.secondary_ability,
         "catchphrase": hero.catchphrase,
+        "abilities": get_super_abilities(hero.id),
         }
-        heroes_dict.append(hero)
-    return heroes_dict
+        heroes_list.append(hero)
+    return heroes_list
 
 def villains_dict(villains):
-    villains_dict = []
+    villains_list = []
     for villain in villains:
         villain = {
         "name": villain.name,
         "alter_ego": villain.alter_ego,
-        "primary_ability": villain.primary_ability,
-        "secondary_ability": villain.secondary_ability,
         "catchphrase": villain.catchphrase,
+        "abilities": get_super_abilities(villain.id),
         }
-        villains_dict.append(villain)
-    return villains_dict
+        villains_list.append(villain)
+    return villains_list
+
+def get_super_abilities(super_id):
+    abilities = Power.objects.filter(super = super_id)
+    abilities_list = []
+    for ability in abilities:
+        ability = {
+            "id": ability.id,
+            "name": ability.name,
+        }
+        abilities_list.append(ability)
+    return abilities_list
